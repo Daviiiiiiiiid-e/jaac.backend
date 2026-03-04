@@ -1,8 +1,5 @@
 {
   "version": 2,
-  "builds": [
-    { "src": "api/*.js", "use": "@vercel/node" }
-  ],
   "routes": [
     {
       "src": "/(.*)",
@@ -12,8 +9,6 @@
         "Access-Control-Allow-Headers": "Content-Type"
       },
       "continue": true
-    },
-    { "src": "/api/(.*)", "dest": "/api/$1" },
-    { "src": "/auth/(.*)", "dest": "/api/auth.js" }
+    }
   ]
 }
