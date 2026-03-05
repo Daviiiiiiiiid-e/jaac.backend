@@ -15,7 +15,7 @@ module.exports = async (req, res) => {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Méthode non autorisée' });
 
-  const { date, slot, prenom, email, tel, type } = req.body || {};
+  const { date, slot, prenom, email, tel } = req.body || {};
   if (!date || !slot || !prenom || !email) {
     return res.status(400).json({ error: 'Champs manquants' });
   }
@@ -50,8 +50,8 @@ module.exports = async (req, res) => {
 
     // ── 2. Créer l'événement Google Calendar ──────────────
     const event = {
-      summary: `${type === 'visio' ? '💻 Visio' : '📞 Appel'} découverte — ${prenom}`,
-      description: `Type : ${type === 'visio' ? 'Visioconférence' : 'Téléphone'}\nTéléphone : ${tel || 'non renseigné'}\nEmail : ${email}`,
+      summary: `Appel découverte — ${prenom}`,
+      description: `Téléphone : ${tel || 'non renseigné'}\nEmail : ${email}`,
       start: { dateTime: startDT.toISOString(), timeZone: 'Europe/Paris' },
       end:   { dateTime: endDT.toISOString(),   timeZone: 'Europe/Paris' },
       attendees: [{ email }],
