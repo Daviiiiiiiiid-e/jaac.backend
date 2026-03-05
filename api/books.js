@@ -1,20 +1,21 @@
 // api/book.js
-// POST /api/book
-// Body JSON : { date, slot, prenom, email, tel }
-// → Crée l'événement dans Google Calendar
-// → Envoie un email de confirmation via Gmail
-
 const { google } = require('googleapis');
 const { getAuthenticatedClient } = require('../lib/google');
 
-const SLOT_DURATION = 15; // minutes
+const SLOT_DURATION = 15;
+
+function setCORS(res) {
+  res.setHeader('Access-Control-Allow-Origin', 'https://jaac.io');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+}
 
 module.exports = async (req, res) => {
+  setCORS(res);
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Méthode non autorisée' });
 
   const { date, slot, prenom, email, tel } = req.body || {};
-
   if (!date || !slot || !prenom || !email) {
     return res.status(400).json({ error: 'Champs manquants : date, slot, prenom, email requis' });
   }
@@ -24,12 +25,10 @@ module.exports = async (req, res) => {
     const calendar = google.calendar({ version: 'v3', auth });
     const gmail    = google.gmail({ version: 'v1', auth });
 
-    // ── Calcul des horaires ──────────────────────────────────
     const [h, m] = slot.split(':').map(Number);
     const startDT = new Date(`${date}T${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:00`);
     const endDT   = new Date(startDT.getTime() + SLOT_DURATION * 60000);
 
-    // ── Création de l'événement Google Calendar ──────────────
     const event = {
       summary: `Appel découverte — ${prenom}`,
       description: `Téléphone : ${tel || 'non renseigné'}\nEmail : ${email}`,
@@ -48,10 +47,9 @@ module.exports = async (req, res) => {
     const created = await calendar.events.insert({
       calendarId: process.env.GOOGLE_CALENDAR_ID || 'primary',
       resource: event,
-      sendUpdates: 'all' // Google envoie aussi une invitation à l'attendee
+      sendUpdates: 'all'
     });
 
-    // ── Email de confirmation personnalisé (Gmail) ───────────
     const joursLong = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
     const moisLong  = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
     const d = new Date(`${date}T12:00:00`);
@@ -66,7 +64,6 @@ module.exports = async (req, res) => {
       ``,
       `<html><body style="font-family:-apple-system,sans-serif;background:#EEEEEE;padding:40px">`,
       `<div style="max-width:500px;margin:0 auto;background:#fff;border-radius:20px;padding:40px">`,
-      `<img src="https://jaac.io/images/logojaac.svg" height="28" alt="jaac" style="margin-bottom:32px"/>`,
       `<h2 style="font-size:24px;font-weight:700;margin-bottom:8px">Bonjour ${prenom} 👋</h2>`,
       `<p style="color:#444;line-height:1.6;margin-bottom:24px">`,
       `Votre créneau est bien confirmé :<br>`,
@@ -80,17 +77,9 @@ module.exports = async (req, res) => {
     ].join('\n');
 
     const encoded = Buffer.from(emailContent).toString('base64url');
+    await gmail.users.messages.send({ userId: 'me', resource: { raw: encoded } });
 
-    await gmail.users.messages.send({
-      userId: 'me',
-      resource: { raw: encoded }
-    });
-
-    return res.status(200).json({
-      success: true,
-      eventId: created.data.id,
-      message: `Créneau réservé : ${dateLabel}`
-    });
+    return res.status(200).json({ success: true, eventId: created.data.id, message: `Créneau réservé : ${dateLabel}` });
 
   } catch (err) {
     console.error('Erreur book:', err);
