@@ -28,7 +28,27 @@ module.exports = async (req, res) => {
     const startDT = new Date(`${date}T${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:00`);
     const endDT   = new Date(startDT.getTime() + SLOT_DURATION * 60000);
 
-    // ── 1. Créer l'événement Google Calendar ──────────────
+    // ── 1. Vérifier que le créneau est encore libre ────────
+    const existing = await calendar.events.list({
+      calendarId: process.env.GOOGLE_CALENDAR_ID || 'primary',
+      timeMin: startDT.toISOString(),
+      timeMax: endDT.toISOString(),
+      singleEvents: true
+    });
+
+    const conflict = (existing.data.items || []).some(ev => {
+      const evStart = new Date(ev.start.dateTime || ev.start.date);
+      const evEnd   = new Date(ev.end.dateTime   || ev.end.date);
+      return startDT < evEnd && endDT > evStart;
+    });
+
+    if (conflict) {
+      return res.status(409).json({
+        error: 'Ce créneau vient d\'être réservé. Veuillez en choisir un autre.'
+      });
+    }
+
+    // ── 2. Créer l'événement Google Calendar ──────────────
     const event = {
       summary: `Appel découverte — ${prenom}`,
       description: `Téléphone : ${tel || 'non renseigné'}\nEmail : ${email}`,
@@ -55,7 +75,7 @@ module.exports = async (req, res) => {
     const d = new Date(`${date}T12:00:00`);
     const dateLabel = `${joursLong[d.getDay()]} ${d.getDate()} ${moisLong[d.getMonth()]} à ${slot}`;
 
-    // ── 2. Envoyer l'email — erreur non bloquante ─────────
+    // ── 3. Envoyer l'email — erreur non bloquante ─────────
     try {
       const gmail = google.gmail({ version: 'v1', auth });
       const emailContent = [
@@ -83,7 +103,7 @@ module.exports = async (req, res) => {
       console.error('Email non envoyé (non bloquant):', mailErr.message);
     }
 
-    // ── 3. Retourner succès dans tous les cas ─────────────
+    // ── 4. Retourner succès ───────────────────────────────
     return res.status(200).json({
       success: true,
       eventId: created.data.id,
