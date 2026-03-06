@@ -61,20 +61,23 @@ module.exports = async (req, res) => {
     }
 
     // Filtrer les créneaux occupés
-    const freeSlots = allSlots.filter(slot => {
+    // Séparer créneaux libres et pris
+    const freeSlots = [];
+    const takenSlots = [];
+
+    allSlots.forEach(slot => {
       const slotEnd = new Date(slot.getTime() + SLOT_DURATION * 60000);
-      return !events.some(ev => {
+      const isTaken = events.some(ev => {
         const evStart = new Date(ev.start.dateTime || ev.start.date);
         const evEnd   = new Date(ev.end.dateTime   || ev.end.date);
         return slot < evEnd && slotEnd > evStart;
       });
+      const label = `${String(slot.getHours()).padStart(2,'0')}:${String(slot.getMinutes()).padStart(2,'0')}`;
+      if (isTaken) takenSlots.push(label);
+      else freeSlots.push(label);
     });
 
-    const result = freeSlots.map(s =>
-      `${String(s.getHours()).padStart(2,'0')}:${String(s.getMinutes()).padStart(2,'0')}`
-    );
-
-    return res.status(200).json({ date, slots: result });
+    return res.status(200).json({ date, slots: freeSlots, taken: takenSlots });
 
   } catch (err) {
     console.error('Erreur slots:', err);
