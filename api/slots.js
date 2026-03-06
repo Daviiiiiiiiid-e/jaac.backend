@@ -6,11 +6,8 @@ const SLOT_DURATION = 15;
 
 // Plages horaires par jour (0=Dim, 1=Lun, 2=Mar, 3=Mer, 4=Jeu, 5=Ven, 6=Sam)
 const HOURS = {
-  1: { start: 7, end: 9  },  // Lundi
   2: { start: 7, end: 13 },  // Mardi
-  3: { start: 7, end: 9  },  // Mercredi
   4: { start: 7, end: 13 },  // Jeudi
-  5: { start: 7, end: 9  },  // Vendredi
 };
 
 function setCORS(res) {
