@@ -50,7 +50,7 @@ module.exports = async (req, res) => {
 
     // ── 2. Créer l'événement Google Calendar ──────────────
     const event = {
-      summary: `Appel découverte — ${prenom}`,
+      summary: `jaac 🚀 x ${prenom}`,
       description: `Téléphone : ${tel || 'non renseigné'}\nEmail : ${email}`,
       start: { dateTime: startDT.toISOString(), timeZone: 'Europe/Paris' },
       end:   { dateTime: endDT.toISOString(),   timeZone: 'Europe/Paris' },
